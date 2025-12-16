@@ -101,8 +101,8 @@
 
 ## Demo
 
-<h3>Sinh mê cung</h3>
+<h3>Trang đầu</h3>
 <img src="images/start_page.png" width="500"/>
 
-<h3>Giải mê cung bằng A*</h3>
+<h3>Tô màu đồ thị bằng Dsatur</h3>
 <img src="images/map_runned.png" width="500"/>
