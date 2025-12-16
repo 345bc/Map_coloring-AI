@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hệ Thống Tô Màu Đồ Thị - DSATUR</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script
+      type="text/javascript"
+      src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f8fafc;
+      }
+      .font-mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      /* Slider Styles */
+      input[type="range"] {
+        -webkit-appearance: none;
+        background: transparent;
+        width: 100%;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: #4f46e5;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        margin-top: -6px;
+        transition: transform 0.1s;
+      }
+      input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.1);
+      }
+      input[type="range"]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        cursor: pointer;
+        background: #e2e8f0;
+        border-radius: 2px;
+      }
+
+      /* TAB STYLES (NGANG) */
+      .tab-btn {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .tab-active {
+        background-color: white;
+        color: #4f46e5;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      .tab-inactive {
+        color: #64748b;
+        background-color: transparent;
+      }
+      .tab-inactive:hover {
+        color: #334155;
+        background-color: rgba(255, 255, 255, 0.5);
+      }
+    </style>
+  </head>
+  <body class="h-screen flex overflow-hidden text-slate-800">
+    <aside
+      class="w-80 bg-white border-r border-slate-200 flex flex-col z-30 shadow-xl shadow-slate-200/50"
+    >
+      <div
+        class="h-16 flex items-center px-6 border-b border-slate-100 bg-white"
+      >
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 tracking-tight">
+            MAP COLORING
+          </h1>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto px-6 py-6 space-y-8 custom-scroll">
+        <section>
+          <div class="flex justify-between items-baseline mb-3">
+            <h3
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+            >
+              1. Bảng Màu (Palette)
+            </h3>
+            <button
+              onclick="resetPalette()"
+              class="text-[10px] font-medium text-slate-400 hover:text-indigo-600 transition underline decoration-dotted"
+            >
+              Mặc định
+            </button>
+          </div>
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <div
+              id="paletteList"
+              class="flex flex-wrap gap-2 mb-4 min-h-[32px]"
+            ></div>
+            <div class="flex items-center gap-2">
+              <div
+                class="relative w-9 h-9 overflow-hidden rounded-lg shadow-sm border border-slate-200 ring-2 ring-transparent hover:ring-indigo-100 transition cursor-pointer group"
+              >
+                <input
+                  type="color"
+                  id="newColorPicker"
+                  value="#6366f1"
+                  class="absolute -top-4 -left-4 w-20 h-20 cursor-pointer"
+                />
+              </div>
+              <button
+                onclick="addColor()"
+                class="flex-1 h-9 bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 text-slate-600 text-xs font-bold rounded-lg shadow-sm transition"
+              >
+                Thêm Màu
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3
+            class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3"
+          >
+            2. Dữ Liệu Đồ Thị
+          </h3>
+
+          <div class="flex p-1 mb-4 bg-slate-100 rounded-lg">
+            <button
+              onclick="setTab('random')"
+              id="btn-random"
+              class="tab-btn tab-active flex-1 py-1.5 text-[11px] font-bold uppercase tracking-wide rounded-md text-center"
+            >
+              Ngẫu Nhiên
+            </button>
+            <button
+              onclick="setTab('template')"
+              id="btn-template"
+              class="tab-btn tab-inactive flex-1 py-1.5 text-[11px] font-bold uppercase tracking-wide rounded-md text-center"
+            >
+              Mẫu
+            </button>
+            <button
+              onclick="setTab('manual')"
+              id="btn-manual"
+              class="tab-btn tab-inactive flex-1 py-1.5 text-[11px] font-bold uppercase tracking-wide rounded-md text-center"
+            >
+              Vẽ / Nhập
+            </button>
+          </div>
+
+          <div id="tab-random" class="block animate-fade-in">
+            <div class="space-y-4">
+              <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="flex justify-between text-xs mb-2">
+                  <span class="text-slate-500 font-medium">Số lượng đỉnh</span>
+                  <span id="nodeVal" class="font-mono font-bold text-indigo-600"
+                    >10</span
+                  >
+                </div>
+                <input type="range" id="numNodes" min="3" max="50" value="10" />
+              </div>
+              <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="flex justify-between text-xs mb-2">
+                  <span class="text-slate-500 font-medium">Mật độ kết nối</span>
+                  <span
+                    id="densityVal"
+                    class="font-mono font-bold text-indigo-600"
+                    >30%</span
+                  >
+                </div>
+                <input
+                  type="range"
+                  id="density"
+                  min="0.1"
+                  max="0.9"
+                  step="0.1"
+                  value="0.3"
+                />
+              </div>
+              <button
+                onclick="generateRandom()"
+                class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold uppercase tracking-wide rounded-lg shadow-md hover:shadow-lg transition transform active:scale-[0.98]"
+              >
+                Tạo Bản Đồ Mới
+              </button>
+            </div>
+          </div>
+
+          <div id="tab-template" class="hidden">
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                onclick="loadTemplate('petersen')"
+                class="h-10 px-3 border border-slate-200 bg-white hover:border-indigo-500 hover:text-indigo-600 text-slate-600 text-xs font-semibold rounded-lg transition text-left"
+              >
+                Petersen
+              </button>
+              <button
+                onclick="loadTemplate('star')"
+                class="h-10 px-3 border border-slate-200 bg-white hover:border-indigo-500 hover:text-indigo-600 text-slate-600 text-xs font-semibold rounded-lg transition text-left"
+              >
+                Ngôi Sao
+              </button>
+              <button
+                onclick="loadTemplate('wheel')"
+                class="h-10 px-3 border border-slate-200 bg-white hover:border-indigo-500 hover:text-indigo-600 text-slate-600 text-xs font-semibold rounded-lg transition text-left"
+              >
+                Bánh Xe
+              </button>
+              <button
+                onclick="loadTemplate('grid')"
+                class="h-10 px-3 border border-slate-200 bg-white hover:border-indigo-500 hover:text-indigo-600 text-slate-600 text-xs font-semibold rounded-lg transition text-left"
+              >
+                Lưới 4x4
+              </button>
+              <button
+                onclick="loadTemplate('complete')"
+                class="col-span-2 h-10 px-3 border border-slate-200 bg-white hover:border-indigo-500 hover:text-indigo-600 text-slate-600 text-xs font-semibold rounded-lg transition text-center"
+              >
+                Đồ Thị Đầy Đủ (K6)
+              </button>
+            </div>
+          </div>
+
+          <div id="tab-manual" class="hidden space-y-3">
+            <div
+              class="flex items-center justify-between p-3 rounded-lg bg-indigo-50 border border-indigo-100"
+            >
+              <span class="text-xs font-bold text-indigo-800"
+                >Chế độ vẽ tương tác</span
+              >
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="editModeToggle"
+                  onchange="toggleEditMode()"
+                  class="sr-only peer"
+                />
+                <div
+                  class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"
+                ></div>
+              </label>
+            </div>
+            <div class="relative group">
+              <select
+                id="inputType"
+                onchange="toggleInputType()"
+                class="w-full text-xs p-2.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 appearance-none font-medium text-slate-600"
+              >
+                <option value="edge">Định dạng: Danh sách cạnh</option>
+                <option value="matrix">Định dạng: Ma trận kề</option>
+              </select>
+              <div
+                class="absolute right-3 top-3 pointer-events-none text-slate-400 text-[10px]"
+              >
+                ▼
+              </div>
+            </div>
+            <textarea
+              id="manualInput"
+              rows="5"
+              class="w-full p-3 text-xs border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-indigo-500 outline-none font-mono resize-none placeholder-slate-400"
+              placeholder="VD: 0-1, 1-2, 2-3..."
+            ></textarea>
+            <button
+              onclick="parseInputData()"
+              class="w-full py-2 bg-white border border-slate-300 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 text-slate-600 text-xs font-bold rounded-lg transition shadow-sm"
+            >
+              Xử Lý & Vẽ Đồ Thị
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <div class="p-6 border-t border-slate-200 bg-white z-10">
+        <div class="flex items-center gap-3 mb-4">
+          <span
+            class="text-[10px] font-bold uppercase text-slate-400 tracking-wider"
+            >Tốc độ</span
+          >
+          <input
+            type="range"
+            id="animSpeed"
+            min="10"
+            max="800"
+            value="300"
+            class="flex-1"
+          />
+        </div>
+        <button
+          id="btnRun"
+          onclick="runSolver()"
+          class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-200 transition transform active:scale-[0.98]"
+        >
+          Bắt Đầu Tô Màu
+        </button>
+        <button
+          id="btnStop"
+          onclick="stopAnimation()"
+          class="hidden w-full py-3.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-lg shadow-rose-200 transition transform active:scale-[0.98]"
+        >
+          Dừng Lại
+        </button>
+      </div>
+    </aside>
+
+    <main class="flex-1 relative flex flex-col h-full bg-slate-50">
+      <div
+        class="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 z-10 sticky top-0"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+          ></div>
+          <div class="flex flex-col">
+            <span
+              class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+              >Trạng thái hệ thống</span
+            >
+            <span
+              id="statusBox"
+              class="text-sm font-mono font-medium text-slate-700"
+              >Sẵn sàng nhận dữ liệu...</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 relative overflow-hidden group">
+        <div
+          id="mynetwork"
+          class="absolute inset-0 outline-none cursor-grab active:cursor-grabbing"
+        ></div>
+        <div class="absolute bottom-6 right-6 z-10">
+          <div
+            class="bg-white/90 backdrop-blur-sm border border-white/50 p-4 rounded-2xl shadow-xl shadow-slate-200/50 min-w-[200px] transition hover:scale-[1.02]"
+          >
+            <h4
+              class="text-[10px] font-bold uppercase text-slate-400 border-b border-slate-100 pb-2 mb-2 tracking-wide"
+            >
+              Màu Đang Sử Dụng
+            </h4>
+            <div
+              id="legendBox"
+              class="space-y-2 max-h-48 overflow-y-auto custom-scroll pr-1"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
+</html>
